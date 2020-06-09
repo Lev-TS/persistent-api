@@ -13,7 +13,6 @@ artistsRouter.param('artistId', (req, res, next, id) => {
         FROM Artist 
         WHERE id = $artistId
     `;
-
 	const ph = { $artistId: id };
 	const cb = (err, row) => {
 		if (err) {
@@ -35,15 +34,9 @@ artistsRouter.get('/', (req, res, next) => {
         FROM Artist 
         WHERE is_currently_employed = 1
     `;
-
 	const cb = (err, row) => {
-		if (err) {
-			next(err);
-		} else {
-			res.status(200).json({ artists: row });
-		}
+		err ? next(err) : res.status(200).json({ artists: row });
 	};
-
 	db.all(query, cb);
 });
 

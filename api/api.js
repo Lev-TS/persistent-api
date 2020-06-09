@@ -1,6 +1,6 @@
 const express = require('express');
 const artistsRouter = require('./artists');
-const seriesRouter = require('./series')
+const seriesRouter = require('./series');
 
 const apiRouter = express.Router();
 apiRouter.use('/artists', artistsRouter);

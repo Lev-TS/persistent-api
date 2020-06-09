@@ -1,19 +1,22 @@
 const express = require('express');
 const sqlite3 = require('sqlite3');
+const issuesRouter = require('./issues');
 
 const seriesRouter = express.Router();
+seriesRouter.use('/:seriesId/issues', issuesRouter);
+
 const db = new sqlite3.Database(
 	process.env.TEST_DATABASE || './database.sqlite'
 );
 
 seriesRouter.param('seriesId', (req, res, next, id) => {
-    const query = `
+	const query = `
         SELECT * 
         FROM Series 
         WHERE id = $seriesId
     `;
-    const ph = { $seriesId: id };
-    const cb = (err, row) => {
+	const ph = { $seriesId: id };
+	const cb = (err, row) => {
 		if (err) {
 			next(err);
 		} else if (row) {
@@ -22,19 +25,19 @@ seriesRouter.param('seriesId', (req, res, next, id) => {
 		} else {
 			res.sendStatus(404);
 		}
-    };
-    db.get(query, ph, cb);
-})
+	};
+	db.get(query, ph, cb);
+});
 
 // Read all entries
 seriesRouter.get('/', (req, res, next) => {
-    const query = `SELECT * FROM Series`;
-    const cb = (err, row) => {
-        err ? next(err) : res.status(200).json({ series: row });
-    }
+	const query = `SELECT * FROM Series`;
+	const cb = (err, row) => {
+		err ? next(err) : res.status(200).json({ series: row });
+	};
 
-    db.all(query, cb);
-})
+	db.all(query, cb);
+});
 
 // Read a single entry
 seriesRouter.get('/:seriesId', (req, res, next) => {
@@ -48,7 +51,7 @@ seriesRouter.post('/', (req, res, next) => {
 
 	if (!name || !description) {
 		res.sendStatus(400);
-	};
+	}
 
 	const query = `
         INSERT INTO Series (
@@ -63,7 +66,7 @@ seriesRouter.post('/', (req, res, next) => {
 
 	const ph = {
 		$name: name,
-		$description: description
+		$description: description,
 	};
 
 	function cb(err) {
@@ -78,7 +81,7 @@ seriesRouter.post('/', (req, res, next) => {
 				}
 			);
 		}
-	};
+	}
 
 	db.run(query, ph, cb);
 });
@@ -90,7 +93,7 @@ seriesRouter.put('/:seriesId', (req, res, next) => {
 
 	if (!name || !description) {
 		res.sendStatus(400);
-	};
+	}
 
 	const query = `
         UPDATE Series 
@@ -122,5 +125,26 @@ seriesRouter.put('/:seriesId', (req, res, next) => {
 	db.run(query, ph, cb);
 });
 
+// delete an entry
+seriesRouter.delete('/:seriesId', (req, res, next) => {
+	const issueQuery = `SELECT * FROM Issue WHERE series_id = $seriesId`;
+	const phForIssueQuery = { $seriesId: req.params.seriesId };
+	const cbForIssueQuery = (err, row) => {
+		if (err) {
+			next(err);
+		} else if (row) {
+			res.sendStatus(400);
+		} else {
+			const query = 'DELETE FROM Series WHERE id = $seriesId';
+			const ph = { $seriesId: req.params.seriesId };
+			const cb = (err) => {
+				err ? next(err) : res.sendStatus(204);
+			};
+			db.run(query, ph, cb);
+		}
+	};
+
+	db.get(issueQuery, phForIssueQuery, cbForIssueQuery);
+});
 
 module.exports = seriesRouter;
